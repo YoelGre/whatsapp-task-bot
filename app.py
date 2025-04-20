@@ -88,20 +88,13 @@ def whatsapp():
     if from_number not in known_users:
         known_users.append(from_number)
         save_users()
-        msg.body(
-            "👋 Welcome to your personal WhatsApp Task Tracker!
+        msg.body(f"""👋 Welcome to your personal WhatsApp Task Tracker!
 
-"
-            "You can:
-"
-            "• Add tasks: Buy milk /due today
-"
-            "• Use dates like 22-04 or 22-04 18:00
-"
-            "• Use: list / done 1
-"
-            f"• Manage online: {SITE_URL}"
-        )
+You can:
+• Add tasks: Buy milk /due today
+• Use dates like 22-04 or 22-04 18:00
+• Use: list / done 1
+• Manage online: {SITE_URL}""")
         return str(response)
 
     user_tasks = tasks.get(from_number, [])
@@ -118,8 +111,7 @@ Manage online: {SITE_URL}")
                     line += f" (due {t['deadline']})"
                 lines.append(line)
             lines.append(f"🔗 Manage online: {SITE_URL}")
-            msg.body("
-".join(lines))
+            msg.body("\n".join(lines))
 
     elif incoming_msg.lower().startswith('done '):
         try:
