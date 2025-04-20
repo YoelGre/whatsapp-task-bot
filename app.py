@@ -39,9 +39,13 @@ def parse_deadline(text):
         task_name = parts[0].strip()
         try:
             deadline = datetime.strptime(parts[1].strip(), "%Y-%m-%d %H:%M")
-            return task_name, deadline
+            return task_name, deadline.strftime("%Y-%m-%d %H:%M")
         except ValueError:
-            return task_name, None
+            try:
+                deadline = datetime.strptime(parts[1].strip(), "%Y-%m-%d")
+                return task_name, deadline.strftime("%Y-%m-%d")
+            except ValueError:
+                return task_name, None
     return text.strip(), None
 
 @app.route("/whatsapp", methods=['POST'])
@@ -90,8 +94,10 @@ def whatsapp():
 def task_page():
     if request.method == "POST":
         name = request.form.get("task")
+        due = request.form.get("due")
         if name:
-            tasks.append({'name': name, 'done': False, 'deadline': None, 'reminded': False})
+            deadline = due.strip() if due else None
+            tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
             save_tasks()
         return redirect(url_for('task_page'))
     return render_template("tasks.html", tasks=tasks)
@@ -114,18 +120,29 @@ def reminder_loop():
     while True:
         now = datetime.now()
         for task in tasks:
-            if (
-                not task['done']
-                and task['deadline']
-                and not task.get('reminded')
-                and datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M") - timedelta(days=1) < now < datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M")
-            ):
-                client.messages.create(
-                    body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline']}",
-                    from_=FROM_NUMBER,
-                    to=TO_NUMBER
-                )
-                task['reminded'] = True
+            if task['done'] or not task['deadline'] or task.get('reminded'):
+                continue
+            try:
+                if len(task['deadline']) == 16:
+                    deadline = datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M")
+                    if now + timedelta(hours=1) > deadline > now:
+                        client.messages.create(
+                            body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline']}",
+                            from_=FROM_NUMBER,
+                            to=TO_NUMBER
+                        )
+                        task['reminded'] = True
+                elif len(task['deadline']) == 10:
+                    deadline = datetime.strptime(task['deadline'], "%Y-%m-%d")
+                    if now + timedelta(days=1) > deadline > now:
+                        client.messages.create(
+                            body=f"⏰ Reminder: '{task['name']}' is due on {task['deadline']}",
+                            from_=FROM_NUMBER,
+                            to=TO_NUMBER
+                        )
+                        task['reminded'] = True
+            except ValueError:
+                continue
         save_tasks()
         time.sleep(3600)
 
