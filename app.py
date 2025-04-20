@@ -41,19 +41,24 @@ FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
 
+# ---------- SAFE DATE PARSING ----------
+
 def parse_flexible_date(text):
     text = text.strip().lower()
     now = datetime.now()
+
     if text == "today":
         return now.strftime("%Y-%m-%d")
     elif text == "tomorrow":
         return (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
     formats = [
         ("%d-%m-%Y %H:%M", True),
         ("%d-%m-%Y", False),
         ("%d-%m %H:%M", True),
         ("%d-%m", False),
     ]
+
     for fmt, has_time in formats:
         try:
             dt = datetime.strptime(text, fmt)
@@ -62,17 +67,23 @@ def parse_flexible_date(text):
                 if dt < now:
                     dt = dt.replace(year=now.year + 1)
             return dt.strftime("%Y-%m-%d %H:%M") if has_time else dt.strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-    return None
+        except Exception as e:
+            print(f"⚠️ Date parsing failed for: '{text}' — {e}")
+            return None
 
 def parse_deadline(text):
-    if '/due' in text:
-        parts = text.split('/due')
-        task_name = parts[0].strip()
-        deadline = parse_flexible_date(parts[1].strip())
-        return task_name, deadline
-    return text.strip(), None
+    try:
+        if '/due' in text:
+            parts = text.split('/due')
+            task_name = parts[0].strip()
+            deadline = parse_flexible_date(parts[1].strip())
+            return task_name, deadline
+        return text.strip(), None
+    except Exception as e:
+        print(f"⚠️ Deadline parsing error: {e}")
+        return text.strip(), None
+
+# ---------- WHATSAPP BOT ----------
 
 @app.route("/whatsapp", methods=['POST'])
 def whatsapp():
@@ -80,6 +91,7 @@ def whatsapp():
     from_number = request.form.get('From')
     response = MessagingResponse()
     msg = response.message()
+
     if from_number not in known_users:
         known_users.append(from_number)
         save_users()
@@ -132,6 +144,8 @@ You can:
 
     return str(response)
 
+# ---------- WEB INTERFACE PER USER ----------
+
 @app.route("/<user_id>", methods=["GET", "POST"])
 def user_tasks_page(user_id):
     if user_id not in tasks:
@@ -167,6 +181,8 @@ def remove_done_tasks(user_id):
         save_tasks()
     return redirect(url_for('user_tasks_page', user_id=user_id))
 
+# ---------- REMINDER THREAD ----------
+
 def reminder_loop():
     while True:
         now = datetime.now()
@@ -193,13 +209,16 @@ def reminder_loop():
                                 to=user
                             )
                             task['reminded'] = True
-                except ValueError:
+                except ValueError as e:
+                    print(f"⚠️ Reminder error: {e}")
                     continue
         save_tasks()
         time.sleep(3600)
 
 reminder_thread = Thread(target=reminder_loop, daemon=True)
 reminder_thread.start()
+
+# ---------- RUN THE APP ----------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
