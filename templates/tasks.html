@@ -1,85 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Task List</title>
+    <meta charset="UTF-8">
+    <title>My Tasks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f3f3f3;
-            padding: 30px;
+            font-family: system-ui, sans-serif;
+            background: #f4f4f4;
+            padding: 2em;
             max-width: 600px;
             margin: auto;
         }
         h1 {
             text-align: center;
+            color: #333;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
+        form {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 2em;
         }
-        li {
-            background: #fff;
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 6px;
+        input[type="text"] {
+            padding: 0.5em;
+            margin-bottom: 0.5em;
+            font-size: 1em;
+        }
+        button {
+            padding: 0.6em;
+            font-size: 1em;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 0.3em;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .task {
+            background: white;
+            padding: 0.8em;
+            margin-bottom: 0.5em;
+            border-radius: 0.3em;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        s {
-            color: gray;
+        .task.done {
+            text-decoration: line-through;
+            color: #999;
         }
-        a {
+        .deadline {
+            font-size: 0.85em;
+            color: #666;
+        }
+        .actions a {
+            font-size: 0.9em;
+            color: #007bff;
             text-decoration: none;
-            color: green;
-        }
-        form {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #004d99;
+            margin-left: 1em;
         }
     </style>
 </head>
 <body>
-    <h1>📋 Task List</h1>
-
-    <ul>
-    {% for task in tasks %}
-        <li>
-            {% if task.done %}
-                ✅ <s>{{ task.name }}</s>
-            {% else %}
-                ❌ {{ task.name }}
-                <a href="{{ url_for('check', task_id=loop.index0) }}">✅ Mark done</a>
-            {% endif %}
-        </li>
-    {% endfor %}
-    </ul>
-
-    <form method="POST" action="/">
+    <h1>Your Tasks</h1>
+    <form method="POST" action="">
         <input type="text" name="task" placeholder="New task" required>
-        <button type="submit">➕ Add</button>
+        <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 14:00)">
+        <button type="submit">➕ Add Task</button>
     </form>
 
-    <form method="GET" action="{{ url_for('remove_done') }}">
-        <button type="submit">🗑️ Remove Completed Tasks</button>
+    {% for i, task in enumerate(tasks) %}
+    <div class="task {% if task.done %}done{% endif %}">
+        <div>
+            {{ i+1 }}. {{ task.name }}
+            {% if task.deadline %}
+                <div class="deadline">📅 Due: {{ task.deadline }}</div>
+            {% endif %}
+        </div>
+        <div class="actions">
+            {% if not task.done %}
+            <a href="/{{ user_id }}/check/{{ i }}">✅ Done</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <form method="GET" action="/{{ user_id }}/remove_done">
+        <button style="background:#dc3545;">🗑 Remove Completed</button>
     </form>
 </body>
 </html>
