@@ -93,12 +93,14 @@ def whatsapp():
 
 "
             "You can:
-• Add tasks: Buy milk /due today
-• Use dates like 22-04 or 22-04 18:00
+"
+            "• Add tasks: Buy milk /due today
+"
+            "• Use dates like 22-04 or 22-04 18:00
 "
             "• Use: list / done 1
-• Manage online:
-" + SITE_URL
+"
+            f"• Manage online: {SITE_URL}"
         )
         return str(response)
 
@@ -116,7 +118,8 @@ Manage online: {SITE_URL}")
                     line += f" (due {t['deadline']})"
                 lines.append(line)
             lines.append(f"🔗 Manage online: {SITE_URL}")
-            msg.body("\n".join(lines))
+            msg.body("
+".join(lines))
 
     elif incoming_msg.lower().startswith('done '):
         try:
