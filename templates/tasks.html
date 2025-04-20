@@ -71,24 +71,21 @@
         <button type="submit">➕ Add Task</button>
     </form>
 
-    {% for i, task in enumerate(tasks) %}
+    {% for task in tasks %}
     <div class="task {% if task.done %}done{% endif %}">
         <div>
-            {{ i+1 }}. {{ task.name }}
+            {{ loop.index }}. {{ task.name }}
             {% if task.deadline %}
                 <div class="deadline">📅 Due: {{ task.deadline }}</div>
             {% endif %}
         </div>
         <div class="actions">
             {% if not task.done %}
-            <a href="/check/{{ i }}">✅ Done</a>
+            <a href="/check/{{ loop.index0 }}">✅ Done</a>
             {% endif %}
         </div>
     </div>
     {% endfor %}
 
     <form method="GET" action="/remove_done">
-        <button style="background:#dc3545; margin-top: 1em;">🗑 Remove Completed</button>
-    </form>
-</body>
-</html>
+        <
