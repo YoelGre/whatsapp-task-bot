@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task List</title>
+</head>
+<body>
+    <h1>Your Tasks</h1>
+    <ul>
+    {% for i, task in enumerate(tasks) %}
+        <li>
+            {% if task.done %}
+                ✅ <s>{{ task.name }}</s>
+            {% else %}
+                ❌ {{ task.name }} — 
+                <a href="{{ url_for('check', task_id=i) }}">Mark done</a>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+</body>
+</html>
