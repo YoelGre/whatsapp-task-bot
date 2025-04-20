@@ -101,8 +101,7 @@ You can:
 
     if incoming_msg.lower() == 'list':
         if not user_tasks:
-            msg.body(f"No tasks yet.
-Manage online: {SITE_URL}")
+            msg.body(f"No tasks yet.\nManage online: {SITE_URL}")
         else:
             lines = []
             for i, t in enumerate(user_tasks):
