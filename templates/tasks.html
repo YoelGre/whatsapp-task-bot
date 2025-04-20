@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Tasks</title>
+    <title>Shared Task List</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -63,9 +63,9 @@
     </style>
 </head>
 <body>
-    <h1>Task List</h1>
+    <h1>Shared Task List</h1>
 
-    <form method="POST" action="">
+    <form method="POST">
         <input type="text" name="task" placeholder="New task" required>
         <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 18:00)">
         <button type="submit">➕ Add Task</button>
@@ -88,4 +88,7 @@
     {% endfor %}
 
     <form method="GET" action="/remove_done">
-        <
+        <button style="background:#dc3545;">🗑 Remove Completed</button>
+    </form>
+</body>
+</html>
