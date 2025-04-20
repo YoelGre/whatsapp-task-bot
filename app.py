@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, request
+from flask import Flask, request, render_template, redirect, url_for
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from threading import Thread
@@ -10,43 +10,63 @@ import json
 app = Flask(__name__)
 TASKS_FILE = "tasks.json"
 
+
 def load_tasks():
     if os.path.exists(TASKS_FILE):
         with open(TASKS_FILE, "r") as f:
             return json.load(f)
     return []
 
+
 def save_tasks():
     with open(TASKS_FILE, "w") as f:
         json.dump(tasks, f, default=str)
 
-# Initial load
+
 tasks = load_tasks()
 
-# Twilio credentials from environment variables
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
-
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
+
+
+def parse_flexible_date(text):
+    """Support: DD-MM, DD-MM-YYYY, DD-MM HH:MM, DD-MM-YYYY HH:MM"""
+    text = text.strip()
+    now = datetime.now()
+
+    formats = [
+        ("%d-%m-%Y %H:%M", True),
+        ("%d-%m-%Y", False),
+        ("%d-%m %H:%M", True),
+        ("%d-%m", False),
+    ]
+
+    for fmt, has_time in formats:
+        try:
+            dt = datetime.strptime(text, fmt)
+            if "%Y" not in fmt:
+                dt = dt.replace(year=now.year)
+                if dt < now:
+                    dt = dt.replace(year=now.year + 1)
+            return dt.strftime("%Y-%m-%d %H:%M") if has_time else dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
 
 def parse_deadline(text):
     if '/due' in text:
         parts = text.split('/due')
         task_name = parts[0].strip()
-        try:
-            deadline = datetime.strptime(parts[1].strip(), "%Y-%m-%d %H:%M")
-            return task_name, deadline.strftime("%Y-%m-%d %H:%M")
-        except ValueError:
-            try:
-                deadline = datetime.strptime(parts[1].strip(), "%Y-%m-%d")
-                return task_name, deadline.strftime("%Y-%m-%d")
-            except ValueError:
-                return task_name, None
+        deadline = parse_flexible_date(parts[1].strip())
+        return task_name, deadline
     return text.strip(), None
+
 
 @app.route("/whatsapp", methods=['POST'])
 def whatsapp():
@@ -90,17 +110,19 @@ def whatsapp():
 
     return str(response)
 
+
 @app.route("/", methods=["GET", "POST"])
 def task_page():
     if request.method == "POST":
         name = request.form.get("task")
         due = request.form.get("due")
         if name:
-            deadline = due.strip() if due else None
+            deadline = parse_flexible_date(due) if due else None
             tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
             save_tasks()
         return redirect(url_for('task_page'))
     return render_template("tasks.html", tasks=tasks)
+
 
 @app.route("/check/<int:task_id>")
 def check(task_id):
@@ -109,12 +131,14 @@ def check(task_id):
         save_tasks()
     return redirect(url_for('task_page'))
 
+
 @app.route("/remove_done")
 def remove_done():
     global tasks
     tasks = [t for t in tasks if not t['done']]
     save_tasks()
     return redirect(url_for('task_page'))
+
 
 def reminder_loop():
     while True:
@@ -145,6 +169,7 @@ def reminder_loop():
                 continue
         save_tasks()
         time.sleep(3600)
+
 
 reminder_thread = Thread(target=reminder_loop, daemon=True)
 reminder_thread.start()
