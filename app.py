@@ -3,18 +3,17 @@ from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from threading import Thread
 from datetime import datetime, timedelta
+import os
 import time
 
 app = Flask(__name__)
 tasks = []
 
-import os
-
+# Load Twilio credentials from environment
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")
-
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
@@ -35,7 +34,6 @@ def whatsapp():
     response = MessagingResponse()
     msg = response.message()
 
-    # LIST TASKS
     if incoming_msg.lower() == 'list':
         if not tasks:
             msg.body("No tasks yet.")
@@ -48,7 +46,6 @@ def whatsapp():
                 lines.append(line)
             msg.body("\n".join(lines))
 
-    # MARK TASK DONE
     elif incoming_msg.lower().startswith('done '):
         try:
             idx = int(incoming_msg[5:]) - 1
@@ -60,7 +57,6 @@ def whatsapp():
         except ValueError:
             msg.body("Use: done [task number]")
 
-    # ADD TASK (with or without deadline)
     else:
         name, deadline = parse_deadline(incoming_msg)
         tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
@@ -71,7 +67,6 @@ def whatsapp():
 
     return str(response)
 
-# Reminder loop (runs in background)
 def reminder_loop():
     while True:
         now = datetime.now()
@@ -95,8 +90,5 @@ reminder_thread = Thread(target=reminder_loop, daemon=True)
 reminder_thread.start()
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-
