@@ -1,13 +1,27 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, request
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from threading import Thread
 from datetime import datetime, timedelta
 import os
 import time
+import json
 
 app = Flask(__name__)
-tasks = []
+TASKS_FILE = "tasks.json"
+
+def load_tasks():
+    if os.path.exists(TASKS_FILE):
+        with open(TASKS_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_tasks():
+    with open(TASKS_FILE, "w") as f:
+        json.dump(tasks, f, default=str)
+
+# Initial load
+tasks = load_tasks()
 
 # Twilio credentials from environment variables
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
@@ -42,7 +56,7 @@ def whatsapp():
             for i, t in enumerate(tasks):
                 line = f"{i+1}. {'✅' if t['done'] else '❌'} {t['name']}"
                 if t['deadline']:
-                    line += f" (due {t['deadline'].strftime('%Y-%m-%d %H:%M')})"
+                    line += f" (due {t['deadline']})"
                 lines.append(line)
             msg.body("\n".join(lines))
 
@@ -51,6 +65,7 @@ def whatsapp():
             idx = int(incoming_msg[5:]) - 1
             if 0 <= idx < len(tasks):
                 tasks[idx]['done'] = True
+                save_tasks()
                 msg.body(f"Marked task {idx+1} as done!")
             else:
                 msg.body("Invalid task number.")
@@ -60,27 +75,36 @@ def whatsapp():
     else:
         name, deadline = parse_deadline(incoming_msg)
         tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
+        save_tasks()
         reply = f"Added task: {name}"
         if deadline:
-            reply += f" (due {deadline.strftime('%Y-%m-%d %H:%M')})"
+            reply += f" (due {deadline})"
         msg.body(reply)
 
     return str(response)
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def task_page():
+    if request.method == "POST":
+        name = request.form.get("task")
+        if name:
+            tasks.append({'name': name, 'done': False, 'deadline': None, 'reminded': False})
+            save_tasks()
+        return redirect(url_for('task_page'))
     return render_template("tasks.html", tasks=tasks)
 
 @app.route("/check/<int:task_id>")
 def check(task_id):
     if 0 <= task_id < len(tasks):
         tasks[task_id]['done'] = True
+        save_tasks()
     return redirect(url_for('task_page'))
 
 @app.route("/remove_done")
 def remove_done():
     global tasks
     tasks = [t for t in tasks if not t['done']]
+    save_tasks()
     return redirect(url_for('task_page'))
 
 def reminder_loop():
@@ -91,15 +115,15 @@ def reminder_loop():
                 not task['done']
                 and task['deadline']
                 and not task.get('reminded')
-                and now + timedelta(days=1) > task['deadline']
-                and now < task['deadline']
+                and datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M") - timedelta(days=1) < now < datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M")
             ):
                 client.messages.create(
-                    body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline'].strftime('%Y-%m-%d %H:%M')}",
+                    body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline']}",
                     from_=FROM_NUMBER,
                     to=TO_NUMBER
                 )
                 task['reminded'] = True
+        save_tasks()
         time.sleep(3600)
 
 reminder_thread = Thread(target=reminder_loop, daemon=True)
