@@ -44,19 +44,16 @@ SITE_URL = "https://whatsapp-task-bot.onrender.com"
 def parse_flexible_date(text):
     text = text.strip().lower()
     now = datetime.now()
-
     if text == "today":
         return now.strftime("%Y-%m-%d")
     elif text == "tomorrow":
         return (now + timedelta(days=1)).strftime("%Y-%m-%d")
-
     formats = [
         ("%d-%m-%Y %H:%M", True),
         ("%d-%m-%Y", False),
         ("%d-%m %H:%M", True),
         ("%d-%m", False),
     ]
-
     for fmt, has_time in formats:
         try:
             dt = datetime.strptime(text, fmt)
@@ -81,10 +78,8 @@ def parse_deadline(text):
 def whatsapp():
     incoming_msg = request.form.get('Body').strip()
     from_number = request.form.get('From')
-
     response = MessagingResponse()
     msg = response.message()
-
     if from_number not in known_users:
         known_users.append(from_number)
         save_users()
@@ -94,14 +89,14 @@ You can:
 • Add tasks: Buy milk /due today
 • Use dates like 22-04 or 22-04 18:00
 • Use: list / done 1
-• Manage online: {SITE_URL}""")
+• Manage online: {SITE_URL}/{from_number}""")
         return str(response)
 
     user_tasks = tasks.get(from_number, [])
 
     if incoming_msg.lower() == 'list':
         if not user_tasks:
-            msg.body(f"No tasks yet.\nManage online: {SITE_URL}")
+            msg.body(f"No tasks yet.\nManage online: {SITE_URL}/{from_number}")
         else:
             lines = []
             for i, t in enumerate(user_tasks):
@@ -109,7 +104,7 @@ You can:
                 if t['deadline']:
                     line += f" (due {t['deadline']})"
                 lines.append(line)
-            lines.append(f"🔗 Manage online: {SITE_URL}")
+            lines.append(f"🔗 Manage online: {SITE_URL}/{from_number}")
             msg.body("\n".join(lines))
 
     elif incoming_msg.lower().startswith('done '):
@@ -136,6 +131,41 @@ You can:
         msg.body(reply)
 
     return str(response)
+
+@app.route("/<user_id>", methods=["GET", "POST"])
+def user_tasks_page(user_id):
+    if user_id not in tasks:
+        tasks[user_id] = []
+    if request.method == "POST":
+        name = request.form.get("task")
+        due = request.form.get("due")
+        deadline = parse_flexible_date(due.strip()) if due else None
+        if name:
+            tasks[user_id].append({
+                'name': name,
+                'done': False,
+                'deadline': deadline,
+                'reminded': False
+            })
+            save_tasks()
+        return redirect(url_for('user_tasks_page', user_id=user_id))
+
+    user_tasks = tasks[user_id]
+    return render_template("tasks.html", tasks=user_tasks, user_id=user_id)
+
+@app.route("/<user_id>/check/<int:task_id>")
+def check_task(user_id, task_id):
+    if user_id in tasks and 0 <= task_id < len(tasks[user_id]):
+        tasks[user_id][task_id]['done'] = True
+        save_tasks()
+    return redirect(url_for('user_tasks_page', user_id=user_id))
+
+@app.route("/<user_id>/remove_done")
+def remove_done_tasks(user_id):
+    if user_id in tasks:
+        tasks[user_id] = [t for t in tasks[user_id] if not t['done']]
+        save_tasks()
+    return redirect(url_for('user_tasks_page', user_id=user_id))
 
 def reminder_loop():
     while True:
