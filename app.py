@@ -9,7 +9,11 @@ import json
 
 app = Flask(__name__)
 TASKS_FILE = "tasks.json"
+USERS_FILE = "users.json"
 
+# ---------------------------
+# Helpers
+# ---------------------------
 
 def load_tasks():
     if os.path.exists(TASKS_FILE):
@@ -17,13 +21,26 @@ def load_tasks():
             return json.load(f)
     return []
 
-
 def save_tasks():
     with open(TASKS_FILE, "w") as f:
         json.dump(tasks, f, default=str)
 
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_users():
+    with open(USERS_FILE, "w") as f:
+        json.dump(known_users, f)
+
+# ---------------------------
+# Initialization
+# ---------------------------
 
 tasks = load_tasks()
+known_users = load_users()
 
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -33,11 +50,18 @@ TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
 
+# ---------------------------
+# Date Parsing Logic
+# ---------------------------
 
 def parse_flexible_date(text):
-    """Support: DD-MM, DD-MM-YYYY, DD-MM HH:MM, DD-MM-YYYY HH:MM"""
-    text = text.strip()
+    text = text.strip().lower()
     now = datetime.now()
+
+    if text == "today":
+        return now.strftime("%Y-%m-%d")
+    elif text == "tomorrow":
+        return (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     formats = [
         ("%d-%m-%Y %H:%M", True),
@@ -58,7 +82,6 @@ def parse_flexible_date(text):
             continue
     return None
 
-
 def parse_deadline(text):
     if '/due' in text:
         parts = text.split('/due')
@@ -67,12 +90,33 @@ def parse_deadline(text):
         return task_name, deadline
     return text.strip(), None
 
+# ---------------------------
+# WhatsApp Bot
+# ---------------------------
 
 @app.route("/whatsapp", methods=['POST'])
 def whatsapp():
     incoming_msg = request.form.get('Body').strip()
+    from_number = request.form.get('From')
+
     response = MessagingResponse()
     msg = response.message()
+
+    # Welcome new users
+    if from_number not in known_users:
+        known_users.append(from_number)
+        save_users()
+        msg.body(
+            "👋 Welcome to your WhatsApp Task Tracker!\n\n"
+            "You can:\n"
+            "• Add tasks: Buy milk /due today\n"
+            "• Use dates like 22-04 or 22-04 18:00\n"
+            "• Use: list / done 1\n"
+            "• Manage online:\n"
+            f"{SITE_URL}\n\n"
+            "Now go ahead and add your first task!"
+        )
+        return str(response)
 
     if incoming_msg.lower() == 'list':
         if not tasks:
@@ -110,6 +154,9 @@ def whatsapp():
 
     return str(response)
 
+# ---------------------------
+# Web Interface
+# ---------------------------
 
 @app.route("/", methods=["GET", "POST"])
 def task_page():
@@ -123,14 +170,12 @@ def task_page():
         return redirect(url_for('task_page'))
     return render_template("tasks.html", tasks=tasks)
 
-
 @app.route("/check/<int:task_id>")
 def check(task_id):
     if 0 <= task_id < len(tasks):
         tasks[task_id]['done'] = True
         save_tasks()
     return redirect(url_for('task_page'))
-
 
 @app.route("/remove_done")
 def remove_done():
@@ -139,6 +184,9 @@ def remove_done():
     save_tasks()
     return redirect(url_for('task_page'))
 
+# ---------------------------
+# Reminder Thread
+# ---------------------------
 
 def reminder_loop():
     while True:
@@ -170,9 +218,12 @@ def reminder_loop():
         save_tasks()
         time.sleep(3600)
 
-
 reminder_thread = Thread(target=reminder_loop, daemon=True)
 reminder_thread.start()
+
+# ---------------------------
+# Launch
+# ---------------------------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
