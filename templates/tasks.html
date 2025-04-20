@@ -61,13 +61,13 @@
     <h1>📋 Task List</h1>
 
     <ul>
-    {% for i, task in enumerate(tasks) %}
+    {% for task in tasks %}
         <li>
             {% if task.done %}
                 ✅ <s>{{ task.name }}</s>
             {% else %}
                 ❌ {{ task.name }}
-                <a href="{{ url_for('check', task_id=i) }}">✅ Mark done</a>
+                <a href="{{ url_for('check', task_id=loop.index0) }}">✅ Mark done</a>
             {% endif %}
         </li>
     {% endfor %}
