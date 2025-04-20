@@ -31,6 +31,8 @@ TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
+SITE_URL = "https://whatsapp-task-bot.onrender.com"
+
 def parse_deadline(text):
     if '/due' in text:
         parts = text.split('/due')
@@ -50,7 +52,7 @@ def whatsapp():
 
     if incoming_msg.lower() == 'list':
         if not tasks:
-            msg.body("No tasks yet.")
+            msg.body(f"No tasks yet.\nManage online: {SITE_URL}")
         else:
             lines = []
             for i, t in enumerate(tasks):
@@ -58,6 +60,7 @@ def whatsapp():
                 if t['deadline']:
                     line += f" (due {t['deadline']})"
                 lines.append(line)
+            lines.append(f"\n🔗 Manage tasks online:\n{SITE_URL}")
             msg.body("\n".join(lines))
 
     elif incoming_msg.lower().startswith('done '):
