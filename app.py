@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template, redirect, url_for
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from threading import Thread
@@ -9,7 +9,7 @@ import time
 app = Flask(__name__)
 tasks = []
 
-# Load Twilio credentials from environment
+# Twilio credentials from environment variables
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
@@ -66,6 +66,22 @@ def whatsapp():
         msg.body(reply)
 
     return str(response)
+
+@app.route("/")
+def task_page():
+    return render_template("tasks.html", tasks=tasks)
+
+@app.route("/check/<int:task_id>")
+def check(task_id):
+    if 0 <= task_id < len(tasks):
+        tasks[task_id]['done'] = True
+    return redirect(url_for('task_page'))
+
+@app.route("/remove_done")
+def remove_done():
+    global tasks
+    tasks = [t for t in tasks if not t['done']]
+    return redirect(url_for('task_page'))
 
 def reminder_loop():
     while True:
