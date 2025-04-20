@@ -16,6 +16,9 @@ def load_tasks():
         with open(TASKS_FILE, "r") as f:
             return json.load(f)
     return {}
+print(f"👀 Adding task: {name} with deadline {deadline}")
+save_tasks()
+print("✅ Saved tasks successfully")
 
 def save_tasks():
     with open(TASKS_FILE, "w") as f:
