@@ -30,6 +30,11 @@ AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")
 
+from_number = request.form.get("From")
+if from_number != TO_NUMBER:
+    print("🚫 Unauthorized number:", from_number)
+    return "Unauthorized", 403
+
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
 
