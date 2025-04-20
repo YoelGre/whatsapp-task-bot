@@ -10,39 +10,34 @@ import json
 app = Flask(__name__)
 TASKS_FILE = "tasks.json"
 
-
 def load_tasks():
     if os.path.exists(TASKS_FILE):
         with open(TASKS_FILE, "r") as f:
             return json.load(f)
     return []
 
-
 def save_tasks():
     with open(TASKS_FILE, "w") as f:
         json.dump(tasks, f, default=str)
-
 
 tasks = load_tasks()
 
 ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
-TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")
-
-from_number = request.form.get("From")
-if from_number != TO_NUMBER:
-    print("🚫 Unauthorized number:", from_number)
-    return "Unauthorized", 403
+TO_NUMBER = os.environ.get("YOUR_WHATSAPP_NUMBER")  # e.g., 'whatsapp:+9725XXXXXXX'
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
 
-
 def parse_flexible_date(text):
-    """Support: DD-MM, DD-MM-YYYY, DD-MM HH:MM, DD-MM-YYYY HH:MM"""
-    text = text.strip()
+    text = text.strip().lower()
     now = datetime.now()
+
+    if text == "today":
+        return now.strftime("%Y-%m-%d")
+    elif text == "tomorrow":
+        return (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     formats = [
         ("%d-%m-%Y %H:%M", True),
@@ -59,10 +54,9 @@ def parse_flexible_date(text):
                 if dt < now:
                     dt = dt.replace(year=now.year + 1)
             return dt.strftime("%Y-%m-%d %H:%M") if has_time else dt.strftime("%Y-%m-%d")
-        except ValueError:
+        except Exception:
             continue
     return None
-
 
 def parse_deadline(text):
     if '/due' in text:
@@ -72,9 +66,15 @@ def parse_deadline(text):
         return task_name, deadline
     return text.strip(), None
 
-
 @app.route("/whatsapp", methods=['POST'])
 def whatsapp():
+    from_number = request.form.get("From")
+    print("📩 Message from:", from_number)
+
+    if from_number != TO_NUMBER:
+        print("🚫 Unauthorized number:", from_number)
+        return "Unauthorized", 403
+
     incoming_msg = request.form.get('Body').strip()
     response = MessagingResponse()
     msg = response.message()
@@ -114,22 +114,19 @@ def whatsapp():
         msg.body(reply)
 
     print("✅ Sending response:", msg.body)
-
     return str(response)
-
 
 @app.route("/", methods=["GET", "POST"])
 def task_page():
     if request.method == "POST":
         name = request.form.get("task")
         due = request.form.get("due")
+        deadline = parse_flexible_date(due) if due else None
         if name:
-            deadline = parse_flexible_date(due) if due else None
             tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
             save_tasks()
         return redirect(url_for('task_page'))
     return render_template("tasks.html", tasks=tasks)
-
 
 @app.route("/check/<int:task_id>")
 def check(task_id):
@@ -138,14 +135,12 @@ def check(task_id):
         save_tasks()
     return redirect(url_for('task_page'))
 
-
 @app.route("/remove_done")
 def remove_done():
     global tasks
     tasks = [t for t in tasks if not t['done']]
     save_tasks()
     return redirect(url_for('task_page'))
-
 
 def reminder_loop():
     while True:
@@ -176,7 +171,6 @@ def reminder_loop():
                 continue
         save_tasks()
         time.sleep(3600)
-
 
 reminder_thread = Thread(target=reminder_loop, daemon=True)
 reminder_thread.start()
