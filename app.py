@@ -113,6 +113,8 @@ def whatsapp():
             reply += f" (due {deadline})"
         msg.body(reply)
 
+    print("✅ Sending response:", msg.body)
+
     return str(response)
 
 
