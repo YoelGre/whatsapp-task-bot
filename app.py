@@ -132,18 +132,22 @@ You can:
         except ValueError:
             msg.body("Use: done [task number]")
 
-    else:
-        name, deadline = parse_deadline(incoming_msg)
-        print(f"👀 Adding task: {name} with deadline {deadline}")
-save_tasks()
-print("✅ Saved tasks successfully")
-        user_tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
-        tasks[from_number] = user_tasks
-        save_tasks()
-        reply = f"Added task: {name}"
-        if deadline:
-            reply += f" (due {deadline})"
-        msg.body(reply)
+else:
+    name, deadline = parse_deadline(incoming_msg)
+    print(f"👀 Adding task: {name} with deadline {deadline}")  # ✅ safely here
+    user_tasks.append({
+        'name': name,
+        'done': False,
+        'deadline': deadline,
+        'reminded': False
+    })
+    tasks[from_number] = user_tasks
+    save_tasks()
+    print("✅ Saved tasks successfully")
+    reply = f"Added task: {name}"
+    if deadline:
+        reply += f" (due {deadline})"
+    msg.body(reply)
 
     return str(response)
 
