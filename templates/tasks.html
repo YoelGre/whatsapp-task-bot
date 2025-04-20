@@ -2,20 +2,84 @@
 <html>
 <head>
     <title>Task List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            padding: 30px;
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #fff;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        s {
+            color: gray;
+        }
+        a {
+            text-decoration: none;
+            color: green;
+        }
+        form {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004d99;
+        }
+    </style>
 </head>
 <body>
-    <h1>Your Tasks</h1>
+    <h1>📋 Task List</h1>
+
     <ul>
     {% for i, task in enumerate(tasks) %}
         <li>
             {% if task.done %}
                 ✅ <s>{{ task.name }}</s>
             {% else %}
-                ❌ {{ task.name }} — 
-                <a href="{{ url_for('check', task_id=i) }}">Mark done</a>
+                ❌ {{ task.name }}
+                <a href="{{ url_for('check', task_id=i) }}">✅ Mark done</a>
             {% endif %}
         </li>
     {% endfor %}
     </ul>
+
+    <form method="POST" action="/">
+        <input type="text" name="task" placeholder="New task" required>
+        <button type="submit">➕ Add</button>
+    </form>
+
+    <form method="GET" action="{{ url_for('remove_done') }}">
+        <button type="submit">🗑️ Remove Completed Tasks</button>
+    </form>
 </body>
 </html>
