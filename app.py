@@ -11,10 +11,6 @@ app = Flask(__name__)
 TASKS_FILE = "tasks.json"
 USERS_FILE = "users.json"
 
-# ---------------------------
-# Helpers
-# ---------------------------
-
 def load_tasks():
     if os.path.exists(TASKS_FILE):
         with open(TASKS_FILE, "r") as f:
@@ -35,10 +31,6 @@ def save_users():
     with open(USERS_FILE, "w") as f:
         json.dump(known_users, f)
 
-# ---------------------------
-# Initialization
-# ---------------------------
-
 tasks = load_tasks()
 known_users = load_users()
 
@@ -48,10 +40,6 @@ FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
-
-# ---------------------------
-# Date Parsing Logic
-# ---------------------------
 
 def parse_flexible_date(text):
     text = text.strip().lower()
@@ -89,10 +77,6 @@ def parse_deadline(text):
         return task_name, deadline
     return text.strip(), None
 
-# ---------------------------
-# WhatsApp Bot
-# ---------------------------
-
 @app.route("/whatsapp", methods=['POST'])
 def whatsapp():
     incoming_msg = request.form.get('Body').strip()
@@ -101,7 +85,6 @@ def whatsapp():
     response = MessagingResponse()
     msg = response.message()
 
-    # Register user
     if from_number not in known_users:
         known_users.append(from_number)
         save_users()
@@ -132,9 +115,7 @@ Manage online: {SITE_URL}")
                 if t['deadline']:
                     line += f" (due {t['deadline']})"
                 lines.append(line)
-            lines.append(f"
-🔗 Manage online:
-{SITE_URL}")
+            lines.append(f"🔗 Manage online: {SITE_URL}")
             msg.body("\n".join(lines))
 
     elif incoming_msg.lower().startswith('done '):
@@ -161,10 +142,6 @@ Manage online: {SITE_URL}")
         msg.body(reply)
 
     return str(response)
-
-# ---------------------------
-# Reminder Thread
-# ---------------------------
 
 def reminder_loop():
     while True:
@@ -199,10 +176,6 @@ def reminder_loop():
 
 reminder_thread = Thread(target=reminder_loop, daemon=True)
 reminder_thread.start()
-
-# ---------------------------
-# Launch
-# ---------------------------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
