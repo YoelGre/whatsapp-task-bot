@@ -16,9 +16,6 @@ def load_tasks():
         with open(TASKS_FILE, "r") as f:
             return json.load(f)
     return {}
-print(f"👀 Adding task: {name} with deadline {deadline}")
-save_tasks()
-print("✅ Saved tasks successfully")
 
 def save_tasks():
     with open(TASKS_FILE, "w") as f:
@@ -137,6 +134,9 @@ You can:
 
     else:
         name, deadline = parse_deadline(incoming_msg)
+        print(f"👀 Adding task: {name} with deadline {deadline}")
+save_tasks()
+print("✅ Saved tasks successfully")
         user_tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
         tasks[from_number] = user_tasks
         save_tasks()
