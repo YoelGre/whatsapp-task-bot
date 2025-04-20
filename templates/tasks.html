@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>My Tasks</title>
+    <title>Tasks</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -17,13 +17,12 @@
             color: #333;
         }
         form {
-            display: flex;
-            flex-direction: column;
             margin-bottom: 2em;
         }
         input[type="text"] {
-            padding: 0.5em;
-            margin-bottom: 0.5em;
+            width: 100%;
+            padding: 0.6em;
+            margin: 0.3em 0;
             font-size: 1em;
         }
         button {
@@ -64,10 +63,11 @@
     </style>
 </head>
 <body>
-    <h1>Your Tasks</h1>
+    <h1>Task List</h1>
+
     <form method="POST" action="">
         <input type="text" name="task" placeholder="New task" required>
-        <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 14:00)">
+        <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 18:00)">
         <button type="submit">➕ Add Task</button>
     </form>
 
@@ -81,14 +81,14 @@
         </div>
         <div class="actions">
             {% if not task.done %}
-            <a href="/{{ user_id }}/check/{{ i }}">✅ Done</a>
+            <a href="/check/{{ i }}">✅ Done</a>
             {% endif %}
         </div>
     </div>
     {% endfor %}
 
-    <form method="GET" action="/{{ user_id }}/remove_done">
-        <button style="background:#dc3545;">🗑 Remove Completed</button>
+    <form method="GET" action="/remove_done">
+        <button style="background:#dc3545; margin-top: 1em;">🗑 Remove Completed</button>
     </form>
 </body>
 </html>
