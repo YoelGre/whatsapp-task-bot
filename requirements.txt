@@ -1,3 +1,4 @@
 Flask
 twilio
 pytz
+psycopg2-binary
