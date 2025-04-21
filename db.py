@@ -34,7 +34,9 @@ def remove_web_done_tasks(user_id):
 
 def guess_timezone(phone):
     phone = str(phone).strip()
-    print(f"📞 guessing timezone for phone: {phone}")  # <-- DEBUG line
+    if phone.startswith("whatsapp:"):
+        phone = phone.replace("whatsapp:", "")
+    print(f"📞 cleaned phone: {phone}")
     if phone.startswith("+972"):
         return "Asia/Jerusalem"
     elif phone.startswith("+1"):
