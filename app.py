@@ -113,32 +113,20 @@ def whatsapp():
     response = MessagingResponse()
     msg = response.message()
 
+    user_id = get_or_create_user(from_number)
+
     print(f"📩 Incoming from {from_number}: {incoming_msg}")
 
-    if from_number not in known_users:
-        known_users.append(from_number)
-        save_users()
-        msg.body(f"""👋 Welcome to your personal WhatsApp Task Tracker!
-
-You can:
-• Add tasks: Buy milk /due today
-• Use dates like 22-04 or 22-04 18:00
-• Use: list / done 1
-• Manage online: {SITE_URL}/{from_number}""")
-        print(f"🤖 Bot reply: {msg.body}")
-        return Response(str(response), mimetype="application/xml")
-
-    user_tasks = tasks.get(from_number, [])
-
-    if incoming_msg.lower() == 'list':
-        if not user_tasks:
+    if incoming_msg.lower() == "list":
+        tasks = get_tasks_for_user(user_id)
+        if not tasks:
             msg.body(f"No tasks yet.\nManage online: {SITE_URL}/{from_number}")
         else:
             lines = []
-            for i, t in enumerate(user_tasks):
-                line = f"{i+1}. {'✅' if t['done'] else '❌'} {t['name']}"
-                if t['deadline']:
-                    line += f" (due {t['deadline']})"
+            for i, (task_id, name, done, deadline) in enumerate(tasks):
+                line = f"{i+1}. {'✅' if done else '❌'} {name}"
+                if deadline:
+                    line += f" (due {deadline})"
                 lines.append(line)
             lines.append(f"🔗 Manage online: {SITE_URL}/{from_number}")
             msg.body("\n".join(lines))
@@ -146,10 +134,10 @@ You can:
     elif incoming_msg.lower().startswith('done '):
         try:
             idx = int(incoming_msg[5:]) - 1
-            if 0 <= idx < len(user_tasks):
-                user_tasks[idx]['done'] = True
-                tasks[from_number] = user_tasks
-                save_tasks()
+            tasks = get_tasks_for_user(user_id)
+            if 0 <= idx < len(tasks):
+                task_id = tasks[idx][0]
+                mark_task_done(task_id)
                 msg.body(f"Marked task {idx+1} as done!")
             else:
                 msg.body("Invalid task number.")
@@ -158,16 +146,14 @@ You can:
 
     else:
         name, deadline = parse_deadline(incoming_msg)
-        user_tasks.append({'name': name, 'done': False, 'deadline': deadline, 'reminded': False})
-        tasks[from_number] = user_tasks
-        save_tasks()
+        add_task(user_id, name, deadline)
         reply = f"Added task: {name}"
         if deadline:
             reply += f" (due {deadline})"
         msg.body(reply)
 
-    print(f"🤖 Bot reply: {msg.body}")
     return Response(str(response), mimetype="application/xml")
+
 
 # ---------- WEB INTERFACE PER USER ----------
 
