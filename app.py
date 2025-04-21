@@ -1,5 +1,4 @@
-from db import init_db
-init_db()
+from db import init_db, get_or_create_user, get_tasks_for_user, add_task, mark_task_done
 from flask import Flask, request, render_template, redirect, url_for, Response
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
@@ -10,6 +9,7 @@ import time
 import json
 
 app = Flask(__name__)
+init_db()
 TASKS_FILE = "tasks.json"
 USERS_FILE = "users.json"
 
