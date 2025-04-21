@@ -92,6 +92,7 @@ def whatsapp():
     from_number = request.form.get('From')
     response = MessagingResponse()
     msg = response.message()
+print(f"📩 Incoming from {from_number}: {incoming_msg}")
 
     if from_number not in known_users:
         known_users.append(from_number)
