@@ -216,7 +216,7 @@ def reminder_loop():
                 try:
                     if len(task['deadline']) == 16:
                         deadline = datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M")
-                        if now + timedelta(hours=1) > deadline > now:
+                        if 0 < (deadline - now).total_seconds() <= 3600:
                             try:
                                 client.messages.create(
                                     body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline']}",
