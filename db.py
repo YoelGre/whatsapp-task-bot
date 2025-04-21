@@ -8,7 +8,14 @@ def connect():
 def init_db():
     with connect() as conn:
         c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, phone TEXT UNIQUE)')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                phone TEXT UNIQUE,
+                timezone TEXT
+            )
+        ''')
+        # Also update tasks table if not already created
         c.execute('''
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY,
