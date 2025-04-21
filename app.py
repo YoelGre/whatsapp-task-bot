@@ -47,9 +47,26 @@ def parse_flexible_date(text):
     text = text.strip().lower()
     now = datetime.now()
 
-    if text == "today":
+    if text.startswith("today"):
+        time_part = text[5:].strip()
+        if time_part:
+            try:
+                t = datetime.strptime(time_part, "%H:%M").time()
+                dt = datetime.combine(now.date(), t)
+                return dt.strftime("%Y-%m-%d %H:%M")
+            except Exception as e:
+                print(f"⚠️ Failed to parse 'today HH:MM': {e}")
         return now.strftime("%Y-%m-%d")
-    elif text == "tomorrow":
+
+    elif text.startswith("tomorrow"):
+        time_part = text[8:].strip()
+        if time_part:
+            try:
+                t = datetime.strptime(time_part, "%H:%M").time()
+                dt = datetime.combine(now.date() + timedelta(days=1), t)
+                return dt.strftime("%Y-%m-%d %H:%M")
+            except Exception as e:
+                print(f"⚠️ Failed to parse 'tomorrow HH:MM': {e}")
         return (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     formats = [
@@ -68,8 +85,10 @@ def parse_flexible_date(text):
                     dt = dt.replace(year=now.year + 1)
             return dt.strftime("%Y-%m-%d %H:%M") if has_time else dt.strftime("%Y-%m-%d")
         except Exception as e:
-            print(f"⚠️ Date parsing failed for: '{text}' — {e}")
-            return None
+            continue
+
+    print(f"⚠️ Unrecognized date format: '{text}'")
+    return None
 
 def parse_deadline(text):
     try:
