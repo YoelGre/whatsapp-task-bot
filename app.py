@@ -1,3 +1,5 @@
+from db import init_db
+init_db()
 from flask import Flask, request, render_template, redirect, url_for, Response
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
