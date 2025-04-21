@@ -168,6 +168,14 @@ Other commands:
                 msg.body("Invalid task number.")
         except ValueError:
             msg.body("Use: done [task number]")
+            
+    elif incoming_msg.lower().startswith("tz "):
+        new_tz = incoming_msg[3:].strip()
+        if new_tz in pytz.all_timezones:
+            set_user_timezone(from_number, new_tz)
+            msg.body(f"✅ Time zone updated to {new_tz}")
+        else:
+            msg.body("❌ Invalid time zone.\nTry something like: tz Europe/London")
 
     else:
         name, deadline = parse_deadline(incoming_msg)
