@@ -1,4 +1,23 @@
 import sqlite3
+import pytz
+
+def guess_timezone(phone):
+    if phone.startswith("+972"):
+        return "Asia/Jerusalem"
+    elif phone.startswith("+1"):
+        return "America/New_York"
+    elif phone.startswith("+44"):
+        return "Europe/London"
+    elif phone.startswith("+49"):
+        return "Europe/Berlin"
+    elif phone.startswith("+33"):
+        return "Europe/Paris"
+    elif phone.startswith("+39"):
+        return "Europe/Rome"
+    elif phone.startswith("+91"):
+        return "Asia/Kolkata"
+    else:
+        return "UTC"
 
 DB_FILE = "tasks.db"
 
