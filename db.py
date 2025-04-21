@@ -33,6 +33,8 @@ def remove_web_done_tasks(user_id):
         conn.commit()
 
 def guess_timezone(phone):
+    phone = str(phone).strip()
+    print(f"📞 guessing timezone for phone: {phone}")  # <-- DEBUG line
     if phone.startswith("+972"):
         return "Asia/Jerusalem"
     elif phone.startswith("+1"):
