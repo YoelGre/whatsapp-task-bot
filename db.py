@@ -54,11 +54,11 @@ def get_or_create_user(phone):
         c.execute('SELECT id, timezone FROM users WHERE phone = ?', (phone,))
         row = c.fetchone()
         if row:
-            return row[0]
+            return row[0], False  # existing user
         tz = guess_timezone(phone)
         c.execute('INSERT INTO users (phone, timezone) VALUES (?, ?)', (phone, tz))
         conn.commit()
-        return c.lastrowid
+        return c.lastrowid, True  # new user
 
 def get_user_timezone(phone):
     with connect() as conn:
