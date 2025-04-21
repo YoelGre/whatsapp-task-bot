@@ -1,6 +1,37 @@
 import sqlite3
 import pytz
 
+def get_user_id_by_phone(phone):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('SELECT id FROM users WHERE phone = ?', (phone,))
+        row = c.fetchone()
+        return row[0] if row else None
+
+def get_tasks_for_user_id(user_id):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('SELECT id, name, done, deadline FROM tasks WHERE user_id = ?', (user_id,))
+        return c.fetchall()
+
+def add_web_task(user_id, name, deadline):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('INSERT INTO tasks (user_id, name, deadline) VALUES (?, ?, ?)', (user_id, name, deadline))
+        conn.commit()
+
+def mark_web_task_done(user_id, task_id):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('UPDATE tasks SET done = 1 WHERE id = ? AND user_id = ?', (task_id, user_id))
+        conn.commit()
+
+def remove_web_done_tasks(user_id):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('DELETE FROM tasks WHERE user_id = ? AND done = 1', (user_id,))
+        conn.commit()
+
 def guess_timezone(phone):
     if phone.startswith("+972"):
         return "Asia/Jerusalem"
