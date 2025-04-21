@@ -143,7 +143,9 @@ You can:
             reply += f" (due {deadline})"
         msg.body(reply)
 
-    return str(response)
+    from flask import Response
+    return Response(str(response), mimetype="application/xml")
+
 
 # ---------- WEB INTERFACE PER USER ----------
 
