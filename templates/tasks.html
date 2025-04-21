@@ -70,8 +70,10 @@
         <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 14:00)">
         <button type="submit">➕ Add Task</button>
     </form>
-
-    {% for i, task in enumerate(tasks) %}
+{% for task in tasks %}
+<div class="task {% if task.done %}done{% endif %}">
+    <div>
+        {{ loop.index }}. {{ task.name }}
     <div class="task {% if task.done %}done{% endif %}">
         <div>
             {{ i+1 }}. {{ task.name }}
