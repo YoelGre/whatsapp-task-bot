@@ -117,21 +117,21 @@ def whatsapp():
 
     user_id, is_new_user = get_or_create_user(from_number)
     
-if is_new_user:
-    tz = get_user_timezone(from_number)
-    msg.body(f"""👋 Welcome to your personal WhatsApp Task Tracker!
-
-📍 Your time zone is set to: {tz}
-⏰ Use /due with dates like: today 14:00 or 22-04 18:00
-🌍 To change your time zone, send: tz Europe/London
-
-Other commands:
-• list — show tasks
-• done 1 — mark task 1 as done
-• Manage online: {SITE_URL}/{from_number}""")
-    return Response(str(response), mimetype="application/xml")
-
-    print(f"📩 Incoming from {from_number}: {incoming_msg}")
+    if is_new_user:
+        tz = get_user_timezone(from_number)
+        msg.body(f"""👋 Welcome to your personal WhatsApp Task Tracker!
+    
+    📍 Your time zone is set to: {tz}
+    ⏰ Use /due with dates like: today 14:00 or 22-04 18:00
+    🌍 To change your time zone, send: tz Europe/London
+    
+    Other commands:
+    • list — show tasks
+    • done 1 — mark task 1 as done
+    • Manage online: {SITE_URL}/{from_number}""")
+        return Response(str(response), mimetype="application/xml")
+    
+        print(f"📩 Incoming from {from_number}: {incoming_msg}")
 
     if incoming_msg.lower() == "list":
         tasks = get_tasks_for_user(user_id)
