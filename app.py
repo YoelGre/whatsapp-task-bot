@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, Response
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from threading import Thread
@@ -40,7 +40,6 @@ FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
-# Make sure you use it like: SITE_URL + '/' + from_number
 
 # ---------- SAFE DATE PARSING ----------
 
@@ -92,7 +91,8 @@ def whatsapp():
     from_number = request.form.get('From')
     response = MessagingResponse()
     msg = response.message()
-print(f"📩 Incoming from {from_number}: {incoming_msg}")
+
+    print(f"📩 Incoming from {from_number}: {incoming_msg}")
 
     if from_number not in known_users:
         known_users.append(from_number)
@@ -104,7 +104,8 @@ You can:
 • Use dates like 22-04 or 22-04 18:00
 • Use: list / done 1
 • Manage online: {SITE_URL}/{from_number}""")
-        return str(response)
+        print(f"🤖 Bot reply: {msg.body}")
+        return Response(str(response), mimetype="application/xml")
 
     user_tasks = tasks.get(from_number, [])
 
@@ -144,10 +145,8 @@ You can:
             reply += f" (due {deadline})"
         msg.body(reply)
 
-    from flask import Response
-print(f"🤖 Bot reply: {msg.body}")
+    print(f"🤖 Bot reply: {msg.body}")
     return Response(str(response), mimetype="application/xml")
-
 
 # ---------- WEB INTERFACE PER USER ----------
 
@@ -199,21 +198,29 @@ def reminder_loop():
                     if len(task['deadline']) == 16:
                         deadline = datetime.strptime(task['deadline'], "%Y-%m-%d %H:%M")
                         if now + timedelta(hours=1) > deadline > now:
-                            client.messages.create(
-                                body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline']}",
-                                from_=FROM_NUMBER,
-                                to=user
-                            )
-                            task['reminded'] = True
+                            try:
+                                client.messages.create(
+                                    body=f"⏰ Reminder: '{task['name']}' is due at {task['deadline']}",
+                                    from_=FROM_NUMBER,
+                                    to=user
+                                )
+                                print(f"📤 Reminder sent to {user}: {task['name']} (due {task['deadline']})")
+                                task['reminded'] = True
+                            except Exception as e:
+                                print(f"❌ Failed to send reminder to {user}: {e}")
                     elif len(task['deadline']) == 10:
                         deadline = datetime.strptime(task['deadline'], "%Y-%m-%d")
                         if now + timedelta(days=1) > deadline > now:
-                            client.messages.create(
-                                body=f"⏰ Reminder: '{task['name']}' is due on {task['deadline']}",
-                                from_=FROM_NUMBER,
-                                to=user
-                            )
-                            task['reminded'] = True
+                            try:
+                                client.messages.create(
+                                    body=f"⏰ Reminder: '{task['name']}' is due on {task['deadline']}",
+                                    from_=FROM_NUMBER,
+                                    to=user
+                                )
+                                print(f"📤 Reminder sent to {user}: {task['name']} (due {task['deadline']})")
+                                task['reminded'] = True
+                            except Exception as e:
+                                print(f"❌ Failed to send reminder to {user}: {e}")
                 except ValueError as e:
                     print(f"⚠️ Reminder error: {e}")
                     continue
