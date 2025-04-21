@@ -145,6 +145,7 @@ You can:
         msg.body(reply)
 
     from flask import Response
+print(f"🤖 Bot reply: {msg.body}")
     return Response(str(response), mimetype="application/xml")
 
 
