@@ -163,7 +163,7 @@ To change it, type: /timezone Your/City
 You can:
 • Add tasks: Buy milk /due today 15:30
 • Use: list / done 1
-• Manage online: {SITE_URL}/{from_number}")
+• Manage online: {SITE_URL}/{from_number}""")
         print(f"🤖 Bot reply: {msg.body}")
         return Response(str(response), mimetype="application/xml")
 
