@@ -9,6 +9,10 @@ from datetime import datetime, timedelta
 import os
 import time
 import json
+from db import (
+    get_user_id_by_phone, get_tasks_for_user_id, add_web_task,
+    mark_web_task_done, remove_web_done_tasks
+)
 
 app = Flask(__name__)
 init_db()
@@ -192,37 +196,39 @@ Other commands:
 
 @app.route("/<user_id>", methods=["GET", "POST"])
 def user_tasks_page(user_id):
-    if user_id not in tasks:
-        tasks[user_id] = []
+    uid = get_user_id_by_phone(user_id)
+    if uid is None:
+        return "User not found", 404
+
     if request.method == "POST":
         name = request.form.get("task")
         due = request.form.get("due")
         deadline = parse_flexible_date(due.strip()) if due else None
         if name:
-            tasks[user_id].append({
-                'name': name,
-                'done': False,
-                'deadline': deadline,
-                'reminded': False
-            })
-            save_tasks()
+            add_web_task(uid, name, deadline)
         return redirect(url_for('user_tasks_page', user_id=user_id))
 
-    user_tasks = tasks[user_id]
-    return render_template("tasks.html", tasks=user_tasks, user_id=user_id)
+    task_rows = get_tasks_for_user_id(uid)
+    tasks = [
+        {"id": row[0], "name": row[1], "done": bool(row[2]), "deadline": row[3]}
+        for row in task_rows
+    ]
+    return render_template("tasks.html", tasks=tasks, user_id=user_id)
+
 
 @app.route("/<user_id>/check/<int:task_id>")
 def check_task(user_id, task_id):
-    if user_id in tasks and 0 <= task_id < len(tasks[user_id]):
-        tasks[user_id][task_id]['done'] = True
-        save_tasks()
+    uid = get_user_id_by_phone(user_id)
+    if uid is not None:
+        mark_web_task_done(uid, task_id)
     return redirect(url_for('user_tasks_page', user_id=user_id))
+
 
 @app.route("/<user_id>/remove_done")
 def remove_done_tasks(user_id):
-    if user_id in tasks:
-        tasks[user_id] = [t for t in tasks[user_id] if not t['done']]
-        save_tasks()
+    uid = get_user_id_by_phone(user_id)
+    if uid is not None:
+        remove_web_done_tasks(uid)
     return redirect(url_for('user_tasks_page', user_id=user_id))
 
 # ---------- REMINDER THREAD ----------
