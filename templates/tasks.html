@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Shared Task List</title>
+    <title>My Tasks</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -17,12 +17,13 @@
             color: #333;
         }
         form {
+            display: flex;
+            flex-direction: column;
             margin-bottom: 2em;
         }
         input[type="text"] {
-            width: 100%;
-            padding: 0.6em;
-            margin: 0.3em 0;
+            padding: 0.5em;
+            margin-bottom: 0.5em;
             font-size: 1em;
         }
         button {
@@ -63,31 +64,30 @@
     </style>
 </head>
 <body>
-    <h1>Shared Task List</h1>
-
-    <form method="POST">
+    <h1>Your Tasks</h1>
+    <form method="POST" action="">
         <input type="text" name="task" placeholder="New task" required>
-        <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 18:00)">
+        <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 14:00)">
         <button type="submit">➕ Add Task</button>
     </form>
 
-    {% for task in tasks %}
+    {% for i, task in enumerate(tasks) %}
     <div class="task {% if task.done %}done{% endif %}">
         <div>
-            {{ loop.index }}. {{ task.name }}
+            {{ i+1 }}. {{ task.name }}
             {% if task.deadline %}
                 <div class="deadline">📅 Due: {{ task.deadline }}</div>
             {% endif %}
         </div>
         <div class="actions">
             {% if not task.done %}
-            <a href="/check/{{ loop.index0 }}">✅ Done</a>
+            <a href="/{{ user_id }}/check/{{ i }}">✅ Done</a>
             {% endif %}
         </div>
     </div>
     {% endfor %}
 
-    <form method="GET" action="/remove_done">
+    <form method="GET" action="/{{ user_id }}/remove_done">
         <button style="background:#dc3545;">🗑 Remove Completed</button>
     </form>
 </body>
