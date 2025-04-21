@@ -1,42 +1,20 @@
-import sqlite3
-import pytz
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-def get_user_id_by_phone(phone):
-    with connect() as conn:
-        c = conn.cursor()
-        c.execute('SELECT id FROM users WHERE phone = ?', (phone,))
-        row = c.fetchone()
-        return row[0] if row else None
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-def get_tasks_for_user_id(user_id):
-    with connect() as conn:
-        c = conn.cursor()
-        c.execute('SELECT id, name, done, deadline FROM tasks WHERE user_id = ?', (user_id,))
-        return c.fetchall()
+def connect():
+    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
-def add_web_task(user_id, name, deadline):
-    with connect() as conn:
-        c = conn.cursor()
-        c.execute('INSERT INTO tasks (user_id, name, deadline) VALUES (?, ?, ?)', (user_id, name, deadline))
-        conn.commit()
-
-def mark_web_task_done(user_id, task_id):
-    with connect() as conn:
-        c = conn.cursor()
-        c.execute('UPDATE tasks SET done = 1 WHERE id = ? AND user_id = ?', (task_id, user_id))
-        conn.commit()
-
-def remove_web_done_tasks(user_id):
-    with connect() as conn:
-        c = conn.cursor()
-        c.execute('DELETE FROM tasks WHERE user_id = ? AND done = 1', (user_id,))
-        conn.commit()
+def init_db():
+    # Not strictly needed anymore – we created the tables via Supabase SQL editor
+    pass
 
 def guess_timezone(phone):
     phone = str(phone).strip()
     if phone.startswith("whatsapp:"):
         phone = phone.replace("whatsapp:", "")
-    print(f"📞 cleaned phone: {phone}")
     if phone.startswith("+972"):
         return "Asia/Jerusalem"
     elif phone.startswith("+1"):
@@ -54,74 +32,68 @@ def guess_timezone(phone):
     else:
         return "UTC"
 
-DB_FILE = "tasks.db"
-
-def connect():
-    return sqlite3.connect(DB_FILE)
-
-def init_db():
-    with connect() as conn:
-        c = conn.cursor()
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                phone TEXT UNIQUE,
-                timezone TEXT
-            )
-        ''')
-        # Also update tasks table if not already created
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INTEGER PRIMARY KEY,
-                user_id INTEGER,
-                name TEXT,
-                done INTEGER DEFAULT 0,
-                deadline TEXT,
-                reminded INTEGER DEFAULT 0,
-                FOREIGN KEY(user_id) REFERENCES users(id)
-            )
-        ''')
-        conn.commit()
-
 def get_or_create_user(phone):
     with connect() as conn:
-        c = conn.cursor()
-        c.execute('SELECT id, timezone FROM users WHERE phone = ?', (phone,))
-        row = c.fetchone()
-        if row:
-            return row[0], False  # existing user
-        tz = guess_timezone(phone)
-        c.execute('INSERT INTO users (phone, timezone) VALUES (?, ?)', (phone, tz))
-        conn.commit()
-        return c.lastrowid, True  # new user
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE phone = %s", (phone,))
+            row = cur.fetchone()
+            if row:
+                return row["id"], False
+            tz = guess_timezone(phone)
+            cur.execute("INSERT INTO users (phone, timezone) VALUES (%s, %s) RETURNING id", (phone, tz))
+            user_id = cur.fetchone()["id"]
+            conn.commit()
+            return user_id, True
 
 def get_user_timezone(phone):
     with connect() as conn:
-        c = conn.cursor()
-        c.execute('SELECT timezone FROM users WHERE phone = ?', (phone,))
-        row = c.fetchone()
-        return row[0] if row else "UTC"
+        with conn.cursor() as cur:
+            cur.execute("SELECT timezone FROM users WHERE phone = %s", (phone,))
+            row = cur.fetchone()
+            return row["timezone"] if row else "UTC"
 
 def set_user_timezone(phone, timezone):
     with connect() as conn:
-        c = conn.cursor()
-        c.execute('UPDATE users SET timezone = ? WHERE phone = ?', (timezone, phone))
-        conn.commit()
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET timezone = %s WHERE phone = %s", (timezone, phone))
+            conn.commit()
+
+def get_user_id_by_phone(phone):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE phone = %s", (phone,))
+            row = cur.fetchone()
+            return row["id"] if row else None
 
 def get_tasks_for_user(user_id):
     with connect() as conn:
-        c = conn.cursor()
-        c.execute('SELECT id, name, done, deadline FROM tasks WHERE user_id = ?', (user_id,))
-        return c.fetchall()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, done, deadline FROM tasks WHERE user_id = %s ORDER BY id", (user_id,))
+            return cur.fetchall()
 
 def add_task(user_id, name, deadline=None):
     with connect() as conn:
-        c = conn.cursor()
-        c.execute('INSERT INTO tasks (user_id, name, deadline) VALUES (?, ?, ?)', (user_id, name, deadline))
-        conn.commit()
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO tasks (user_id, name, deadline) VALUES (%s, %s, %s)", (user_id, name, deadline))
+            conn.commit()
 
 def mark_task_done(task_id):
     with connect() as conn:
-        c = conn.cursor()
-        c.execute('UPDATE tasks SET done = 1 WHERE id = ?', (task_id,))
-        conn.commit()
+        with conn.cursor() as cur:
+            cur.execute("UPDATE tasks SET done = TRUE WHERE id = %s", (task_id,))
+            conn.commit()
+
+def add_web_task(user_id, name, deadline):
+    add_task(user_id, name, deadline)
+
+def mark_web_task_done(user_id, task_id):
+    mark_task_done(task_id)
+
+def get_tasks_for_user_id(user_id):
+    return get_tasks_for_user(user_id)
+
+def remove_web_done_tasks(user_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM tasks WHERE user_id = %s AND done = TRUE", (user_id,))
+            conn.commit()
