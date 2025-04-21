@@ -51,13 +51,27 @@ def init_db():
 def get_or_create_user(phone):
     with connect() as conn:
         c = conn.cursor()
-        c.execute('SELECT id FROM users WHERE phone = ?', (phone,))
+        c.execute('SELECT id, timezone FROM users WHERE phone = ?', (phone,))
         row = c.fetchone()
         if row:
             return row[0]
-        c.execute('INSERT INTO users (phone) VALUES (?)', (phone,))
+        tz = guess_timezone(phone)
+        c.execute('INSERT INTO users (phone, timezone) VALUES (?, ?)', (phone, tz))
         conn.commit()
         return c.lastrowid
+
+def get_user_timezone(phone):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('SELECT timezone FROM users WHERE phone = ?', (phone,))
+        row = c.fetchone()
+        return row[0] if row else "UTC"
+
+def set_user_timezone(phone, timezone):
+    with connect() as conn:
+        c = conn.cursor()
+        c.execute('UPDATE users SET timezone = ? WHERE phone = ?', (timezone, phone))
+        conn.commit()
 
 def get_tasks_for_user(user_id):
     with connect() as conn:
