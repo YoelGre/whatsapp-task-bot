@@ -70,20 +70,18 @@
         <input type="text" name="due" placeholder="Due (e.g. 22-04 or 22-04 14:00)">
         <button type="submit">➕ Add Task</button>
     </form>
-{% for task in tasks %}
-<div class="task {% if task.done %}done{% endif %}">
-    <div>
-        {{ loop.index }}. {{ task.name }}
+
+    {% for task in tasks %}
     <div class="task {% if task.done %}done{% endif %}">
         <div>
-            {{ i+1 }}. {{ task.name }}
+            {{ loop.index }}. {{ task.name }}
             {% if task.deadline %}
                 <div class="deadline">📅 Due: {{ task.deadline }}</div>
             {% endif %}
         </div>
         <div class="actions">
             {% if not task.done %}
-            <a href="/{{ user_id }}/check/{{ i }}">✅ Done</a>
+            <a href="/{{ user_id }}/check/{{ loop.index0 }}">✅ Done</a>
             {% endif %}
         </div>
     </div>
