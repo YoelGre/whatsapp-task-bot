@@ -229,7 +229,7 @@ def reminder_loop():
                                 print(f"❌ Failed to send reminder to {user}: {e}")
                     elif len(task['deadline']) == 10:
                         deadline = datetime.strptime(task['deadline'], "%Y-%m-%d")
-                        if now + timedelta(days=1) > deadline > now:
+                        if 0 < (deadline - now).total_seconds() <= 86400:
                             try:
                                 client.messages.create(
                                     body=f"⏰ Reminder: '{task['name']}' is due on {task['deadline']}",
