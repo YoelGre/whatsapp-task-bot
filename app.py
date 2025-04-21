@@ -40,6 +40,7 @@ FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 SITE_URL = "https://whatsapp-task-bot.onrender.com"
+# Make sure you use it like: SITE_URL + '/' + from_number
 
 # ---------- SAFE DATE PARSING ----------
 
