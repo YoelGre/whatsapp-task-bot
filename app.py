@@ -119,24 +119,24 @@ def whatsapp():
     
     if is_new_user:
         import pytz
-    from datetime import datetime
+        from datetime import datetime
+        
+        tz_name = get_user_timezone(from_number)
+        tz_obj = pytz.timezone(tz_name)
+        now = datetime.now(tz_obj)
+        offset_str = now.strftime('%z')  # e.g., "+0300"
+        offset_pretty = f"UTC{offset_str[:3]}:{offset_str[3:]}" if offset_str else "UTC"
     
-    tz_name = get_user_timezone(from_number)
-    tz_obj = pytz.timezone(tz_name)
-    now = datetime.now(tz_obj)
-    offset_str = now.strftime('%z')  # e.g., "+0300"
-    offset_pretty = f"UTC{offset_str[:3]}:{offset_str[3:]}" if offset_str else "UTC"
-
         msg.body(f"""👋 Welcome to your personal WhatsApp Task Tracker!
+    
+📍 Your time zone is set to: {tz_name} ({offset_pretty})
+⏰ Use /due with dates like: today 14:00 or 22-04 18:00
+🌍 To change your time zone, send: tz Europe/London
 
-    📍 Your time zone is set to: {tz_name} ({offset_pretty})
-    ⏰ Use /due with dates like: today 14:00 or 22-04 18:00
-    🌍 To change your time zone, send: tz Europe/London
-
-    Other commands:
-    • list — show tasks
-    • done 1 — mark task 1 as done
-    • Manage online: {SITE_URL}/{from_number}""")
+Other commands:
+• list — show tasks
+• done 1 — mark task 1 as done
+• Manage online: {SITE_URL}/{from_number}""")
 
         return Response(str(response), mimetype="application/xml")
     
